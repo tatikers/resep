@@ -3,901 +3,671 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalkulator Tanaman & Pupuk Plus - Jadwal Pemupukan</title>
-    <meta name="description" content="Kalkulator jarak tanam, bibit, pupuk, jadwal pemupukan berdasarkan umur panen, estimasi keuntungan, dengan riwayat simpan, offline mode, dan export PDF. Gratis untuk petani Indonesia.">
-    <!-- html2pdf untuk export PDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <title>Kalkulator Tanaman & Pupuk - Analisis Lengkap Hasil Perhitungan</title>
+    <meta name="description" content="Kalkulator pertanian dengan analisis lengkap: biaya, pendapatan, keuntungan, dan BEP.">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
             background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
             min-height: 100vh;
-            padding: 20px;
+            padding: 16px;
         }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .header h1 { font-size: 1.6rem; color: #1b5e20; margin-bottom: 6px; }
+        .header p { color: #2e7d32; font-size: 0.85rem; }
 
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
+        .history-btn {
+            position: fixed; bottom: 20px; right: 20px; background: #1b5e20; color: white;
+            border: none; border-radius: 50px; padding: 12px 20px; font-size: 0.9rem;
+            font-weight: 600; cursor: pointer; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            display: flex; align-items: center; gap: 8px;
         }
+        .history-btn:hover { background: #2e7d32; }
 
-        .header {
-            text-align: center;
-            margin-bottom: 25px;
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;
         }
-
-        .header h1 {
-            font-size: 1.8rem;
-            color: #1b5e20;
-            margin-bottom: 8px;
+        .modal.show { display: flex; }
+        .modal-content {
+            background: white; border-radius: 24px; max-width: 500px; width: 90%;
+            max-height: 80%; overflow: auto; padding: 20px;
         }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 2px solid #4caf50; padding-bottom: 12px; }
+        .close-modal { background: none; border: none; font-size: 1.5rem; cursor: pointer; }
+        .history-list { max-height: 400px; overflow-y: auto; }
+        .history-item { background: #f3f4f6; border-radius: 12px; padding: 12px; margin-bottom: 10px; cursor: pointer; position: relative; }
+        .history-item:hover { background: #e5e7eb; }
+        .history-date { font-weight: 700; color: #1b5e20; font-size: 0.8rem; }
+        .history-delete { position: absolute; right: 12px; top: 12px; background: none; border: none; color: #f44336; cursor: pointer; }
+        .btn-clear { background: #f44336; color: white; border: none; padding: 8px 16px; border-radius: 20px; width: 100%; margin-top: 12px; cursor: pointer; }
 
-        .header p {
-            color: #2e7d32;
-            font-size: 0.9rem;
+        .step-indicator {
+            display: flex; justify-content: space-between; margin-bottom: 20px;
+            background: white; border-radius: 40px; padding: 8px 16px; flex-wrap: wrap;
         }
+        .step { flex: 1; text-align: center; padding: 6px; border-radius: 30px; cursor: pointer; }
+        .step.active { background: #4caf50; color: white; }
+        .step.completed { background: #a5d6a7; color: #1b5e20; }
+        .step-number { font-weight: bold; font-size: 0.7rem; }
+        .step-label { font-size: 0.65rem; }
 
-        .offline-status {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: #1b5e20;
-            color: white;
-            padding: 8px 16px;
-            border-radius: 40px;
-            font-size: 0.7rem;
-            font-weight: 600;
-            z-index: 1000;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        .step-card { background: white; border-radius: 24px; padding: 24px; margin-bottom: 20px; display: none; }
+        .step-card.active-step { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .step-title { font-size: 1.3rem; color: #1b5e20; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+        .step-description { color: #6b7280; font-size: 0.8rem; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid #e2e8f0; }
+        .form-group { margin-bottom: 16px; }
+        label { display: block; font-weight: 600; color: #374151; margin-bottom: 4px; font-size: 0.8rem; }
+        .info-tooltip {
+            display: inline-block; background: #e8f5e9; color: #2e7d32; border-radius: 50%;
+            width: 16px; height: 16px; font-size: 0.6rem; text-align: center; line-height: 16px;
+            margin-left: 6px; cursor: help; position: relative;
         }
-
-        .offline-status.offline {
-            background: #f44336;
+        .info-tooltip:hover::after {
+            content: attr(data-tip); position: absolute; bottom: 100%; left: 0;
+            background: #1f2937; color: white; font-size: 0.65rem; padding: 4px 8px;
+            border-radius: 8px; white-space: nowrap; z-index: 10;
         }
+        input, select { width: 100%; padding: 10px 14px; border: 2px solid #e2e8f0; border-radius: 14px; font-size: 0.9rem; }
+        input:focus, select:focus { outline: none; border-color: #4caf50; }
+        .input-group { display: flex; gap: 10px; align-items: center; }
+        .input-group select { width: 100px; }
+        .info-card { background: #e8f5e9; border-radius: 16px; padding: 16px; margin: 16px 0; }
+        .info-card h4 { color: #1b5e20; margin-bottom: 12px; font-size: 0.9rem; border-left: 3px solid #4caf50; padding-left: 10px; }
+        .jarak-info { text-align: center; padding: 12px; }
+        .jarak-besar { font-size: 1.8rem; font-weight: 800; color: #1b5e20; }
+        .pola-ilustrasi { display: flex; gap: 20px; justify-content: center; margin: 12px 0; flex-wrap: wrap; }
+        .pola-box { text-align: center; flex: 1; min-width: 120px; }
+        .pola-box .icon { font-size: 2rem; }
+        .result-preview { background: #f0fdf4; border-radius: 16px; padding: 16px; margin-top: 20px; text-align: center; }
+        .result-number { font-size: 1.8rem; font-weight: 800; color: #16a34a; }
+        .btn-group { display: flex; justify-content: space-between; margin-top: 24px; gap: 12px; }
+        .btn { padding: 10px 20px; border-radius: 40px; font-weight: 600; cursor: pointer; border: none; }
+        .btn-primary { background: #4caf50; color: white; }
+        .btn-primary:hover { background: #388e3c; }
+        .btn-secondary { background: #e2e8f0; color: #374151; }
 
-        .grid {
+        /* Summary Grid untuk Langkah 5 */
+        .summary-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-            gap: 20px;
-            margin-bottom: 24px;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
         }
-
-        .card {
-            background: white;
-            border-radius: 20px;
-            padding: 20px;
-            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
-            transition: transform 0.2s;
+        .summary-card {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 16px;
+            border: 1px solid #e2e8f0;
         }
-
-        .card:hover {
-            transform: translateY(-2px);
-        }
-
-        .card h2 {
-            font-size: 1.2rem;
+        .summary-card h4 {
             color: #1b5e20;
-            margin-bottom: 14px;
+            font-size: 0.9rem;
+            margin-bottom: 12px;
             padding-bottom: 8px;
             border-bottom: 2px solid #4caf50;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            display: inline-block;
         }
-
-        .form-group {
-            margin-bottom: 12px;
-        }
-
-        label {
-            display: block;
-            font-weight: 600;
-            color: #374151;
-            margin-bottom: 4px;
-            font-size: 0.75rem;
-        }
-
-        input, select {
-            width: 100%;
-            padding: 8px 12px;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            font-size: 0.9rem;
-            transition: border-color 0.2s;
-        }
-
-        input:focus, select:focus {
-            outline: none;
-            border-color: #4caf50;
-        }
-
-        .input-group {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .input-group select {
-            width: 100px;
-        }
-
-        .result-box {
-            background: #f0fdf4;
-            border-radius: 14px;
-            padding: 14px;
-            margin-top: 14px;
-            text-align: center;
-        }
-
-        .result-number {
-            font-size: 1.6rem;
-            font-weight: 800;
-            color: #16a34a;
-        }
-
-        .result-label {
-            color: #4b5563;
-            font-size: 0.75rem;
-            margin-top: 4px;
-        }
-
-        button {
-            width: 100%;
-            background: #4caf50;
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 12px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
-            margin-top: 10px;
-        }
-
-        button:hover {
-            background: #388e3c;
-        }
-
-        .btn-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .btn-group button {
-            flex: 1;
-            margin-top: 0;
-        }
-
-        .btn-secondary {
-            background: #6b7280;
-        }
-
-        .btn-secondary:hover {
-            background: #4b5563;
-        }
-
-        .fertilizer-row {
+        .summary-row {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            padding: 6px 0;
-            border-bottom: 1px solid #e2e8f0;
+            padding: 8px 0;
+            border-bottom: 1px dashed #e2e8f0;
             font-size: 0.85rem;
         }
-
-        .fertilizer-name {
-            font-weight: 600;
-            color: #1b5e20;
-            width: 80px;
-        }
-
-        .fertilizer-result {
-            font-weight: 700;
-            color: #16a34a;
-        }
-
-        .schedule-item {
-            background: #f3f4f6;
+        .summary-row .label { color: #4b5563; }
+        .summary-row .value { font-weight: 600; color: #1f2937; }
+        .summary-row.total .value { font-weight: 800; color: #1b5e20; font-size: 1rem; }
+        .profit-badge {
+            background: #e8f5e9;
             border-radius: 12px;
             padding: 12px;
-            margin-bottom: 10px;
-            border-left: 4px solid #4caf50;
-        }
-
-        .schedule-week {
-            font-weight: 800;
-            color: #1b5e20;
-            font-size: 0.85rem;
-            margin-bottom: 6px;
-        }
-
-        .schedule-desc {
-            font-size: 0.8rem;
-            color: #374151;
-            margin-bottom: 6px;
-        }
-
-        .schedule-fertilizer {
-            font-size: 0.75rem;
-            color: #16a34a;
-            font-weight: 600;
-        }
-
-        .progress-bar {
-            background: #e2e8f0;
-            border-radius: 20px;
-            height: 12px;
-            overflow: hidden;
-            margin: 10px 0;
-        }
-
-        .progress-fill {
-            background: #4caf50;
-            height: 100%;
-            width: 0%;
-            transition: width 0.3s;
-            border-radius: 20px;
-        }
-
-        .profit-box {
-            background: #e8f5e9;
-            border-radius: 14px;
-            padding: 12px;
-            margin-top: 12px;
             text-align: center;
-            border: 2px solid #4caf50;
-        }
-
-        .profit-number {
-            font-size: 1.4rem;
-            font-weight: 800;
-            color: #16a34a;
-        }
-
-        .profit-number.positive {
-            color: #16a34a;
-        }
-
-        .profit-number.negative {
-            color: #f44336;
-        }
-
-        .history-item {
-            background: #f3f4f6;
-            border-radius: 10px;
-            padding: 10px;
-            margin-bottom: 8px;
-            font-size: 0.75rem;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .history-item:hover {
-            background: #e5e7eb;
-        }
-
-        .history-date {
-            font-weight: 600;
-            color: #1b5e20;
-        }
-
-        .history-delete {
-            float: right;
-            color: #f44336;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        .note {
-            background: #fef9e6;
-            border-left: 4px solid #ffc107;
-            padding: 8px 12px;
-            border-radius: 10px;
-            font-size: 0.7rem;
-            color: #856404;
             margin-top: 12px;
         }
-
-        .comparison-table {
-            background: white;
-            border-radius: 20px;
-            padding: 20px;
-            margin-top: 20px;
-            overflow-x: auto;
-        }
-
-        .comparison-table h2 {
-            font-size: 1.2rem;
-            color: #1b5e20;
-            margin-bottom: 14px;
-        }
-
-        table {
+        .profit-badge.positive { background: #e8f5e9; border: 2px solid #4caf50; }
+        .profit-badge.negative { background: #ffebee; border: 2px solid #f44336; }
+        .profit-value { font-size: 1.5rem; font-weight: 800; }
+        .profit-value.positive { color: #16a34a; }
+        .profit-value.negative { color: #f44336; }
+        
+        .schedule-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.75rem;
+            margin-top: 12px;
         }
-
-        th, td {
-            padding: 8px;
+        .schedule-table th, .schedule-table td {
+            border: 1px solid #c8e6c9;
+            padding: 10px;
             text-align: left;
-            border-bottom: 1px solid #e2e8f0;
+            vertical-align: top;
         }
-
-        th {
+        .schedule-table th {
             background: #e8f5e9;
-            font-weight: 600;
             color: #1b5e20;
+            font-weight: 600;
         }
-
-        .footer {
-            text-align: center;
-            margin-top: 30px;
-            padding: 20px;
-            color: #2e7d32;
+        .fase-badge {
+            display: inline-block;
+            background: #4caf50;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 20px;
             font-size: 0.7rem;
         }
-
-        @media (max-width: 768px) {
-            .header h1 { font-size: 1.3rem; }
-            .grid { grid-template-columns: 1fr; }
-        }
+        .fase-badge.vegetatif { background: #2196f3; }
+        .fase-badge.generatif { background: #ff9800; }
+        .progress-bar { background: #e2e8f0; border-radius: 20px; height: 10px; overflow: hidden; margin: 10px 0; }
+        .progress-fill { background: #4caf50; height: 100%; width: 0%; }
+        .note { background: #fef9e6; border-left: 4px solid #ffc107; padding: 8px 12px; border-radius: 10px; font-size: 0.7rem; color: #856404; margin-top: 12px; }
+        .footer { text-align: center; margin-top: 20px; padding: 16px; color: #2e7d32; font-size: 0.7rem; }
+        .rekomendasi { background: #e3f2fd; border-left: 4px solid #2196f3; padding: 12px; border-radius: 10px; margin-top: 16px; }
+        @media (max-width: 640px) { .step-label { display: none; } .schedule-table th, .schedule-table td { font-size: 0.7rem; padding: 6px; } }
     </style>
 </head>
 <body>
     <div class="container" id="reportContent">
         <div class="header">
-            <h1>🌾 Kalkulator Tanaman & Pupuk Plus</h1>
-            <p>Hitung jarak tanam, bibit, pupuk, jadwal pemupukan (berdasarkan umur panen), estimasi keuntungan</p>
+            <h1>🌾 Kalkulator Tanaman & Pupuk</h1>
+            <p>Lengkap dengan analisis biaya, pendapatan, keuntungan, dan BEP</p>
         </div>
 
-        <div class="grid">
-            <!-- Card 1: Luas Lahan & Tanaman -->
-            <div class="card">
-                <h2>📏 1. Luas & Tanaman</h2>
-                <div class="form-group">
-                    <label>🌽 Pilih Tanaman</label>
-                    <select id="plantType">
-                        <option value="padi">Padi (panen 105 hari)</option>
-                        <option value="jagung">Jagung (panen 97 hari)</option>
-                        <option value="cabai">Cabai (panen 80 hari)</option>
-                        <option value="tomat">Tomat (panen 72 hari)</option>
-                        <option value="sawi">Sawi (panen 35 hari)</option>
-                        <option value="kangkung">Kangkung (panen 27 hari)</option>
+        <div class="step-indicator">
+            <div class="step active" data-step="1"><div class="step-number">1</div><div class="step-label">Pilih Tanaman</div></div>
+            <div class="step" data-step="2"><div class="step-number">2</div><div class="step-label">Ukur Lahan</div></div>
+            <div class="step" data-step="3"><div class="step-number">3</div><div class="step-label">Harga Pupuk</div></div>
+            <div class="step" data-step="4"><div class="step-number">4</div><div class="step-label">Jadwal Pupuk</div></div>
+            <div class="step" data-step="5"><div class="step-number">5</div><div class="step-label">Hasil & Analisis</div></div>
+        </div>
+
+        <!-- STEP 1 -->
+        <div class="step-card active-step" id="step1">
+            <div class="step-title"><span>🌽</span> Langkah 1: Pilih Jenis Tanaman</div>
+            <div class="step-description">Pilih tanaman yang akan kamu tanam.</div>
+            <div class="form-group">
+                <label>Jenis Tanaman</label>
+                <select id="plantType">
+                    <option value="padi">🌾 Padi (panen 105 hari)</option>
+                    <option value="jagung">🌽 Jagung (panen 97 hari)</option>
+                    <option value="cabai">🌶️ Cabai (panen 80 hari)</option>
+                    <option value="tomat">🍅 Tomat (panen 72 hari)</option>
+                    <option value="sawi">🥬 Sawi (panen 35 hari)</option>
+                    <option value="kangkung">🌿 Kangkung (panen 27 hari)</option>
+                </select>
+            </div>
+            <div class="result-preview">
+                <h4>📊 Informasi Tanaman</h4>
+                <div id="plantInfoPreview">-</div>
+            </div>
+            <div class="btn-group"><button class="btn btn-primary" onclick="nextStep(2)">Selanjutnya →</button></div>
+        </div>
+
+        <!-- STEP 2 -->
+        <div class="step-card" id="step2">
+            <div class="step-title"><span>📏</span> Langkah 2: Masukkan Ukuran Lahan</div>
+            <div class="step-description">Masukkan ukuran lahanmu. Jarak tanam di bawah ini untuk <strong id="selectedPlantName">Padi</strong>.</div>
+            <div class="info-card">
+                <h4>📐 Jarak Tanam untuk <span id="jarakPlantName">Padi</span></h4>
+                <div class="jarak-info">
+                    <div class="jarak-besar" id="jarakValue">25 cm × 25 cm</div>
+                    <div style="margin-top: 8px;" id="densityInfo">~1.600 tanaman per 100 m²</div>
+                </div>
+            </div>
+            <div class="info-card">
+                <h4>🔄 Pola Tanam</h4>
+                <div class="pola-ilustrasi">
+                    <div class="pola-box"><div class="icon">⬜⬜⬜<br>⬜⬜⬜<br>⬜⬜⬜</div><strong>Persegi</strong><div style="font-size:0.7rem">Mudah perawatan</div></div>
+                    <div class="pola-box"><div class="icon">⬜⚪⬜<br>⚪⬜⚪<br>⬜⚪⬜</div><strong>Segitiga</strong><div style="font-size:0.7rem">Lebih padat 15%</div></div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Luas Lahan</label>
+                <div class="input-group">
+                    <input type="number" id="areaValue" value="5000" placeholder="Nilai">
+                    <select id="areaUnit">
+                        <option value="m2">m²</option>
+                        <option value="ha">Hektar (ha)</option>
+                        <option value="tumbak">Tumbak</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label>📐 Luas Lahan</label>
-                    <div class="input-group">
-                        <input type="number" id="areaValue" value="5000" placeholder="Nilai">
-                        <select id="areaUnit">
-                            <option value="m2">m²</option>
-                            <option value="ha">Hektar</option>
-                            <option value="tumbak">Tumbak</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>🔷 Pola Tanam</label>
-                    <select id="pattern">
-                        <option value="square">Persegi (Square)</option>
-                        <option value="offset">Segitiga (Offset)</option>
-                    </select>
-                </div>
-                <button onclick="calculateAll()">Hitung Semua</button>
-                <div class="result-box">
-                    <div class="result-number" id="totalPlants">-</div>
-                    <div class="result-label">Total tanaman dalam lahan</div>
-                    <div id="areaInfo" style="font-size: 0.7rem; margin-top: 6px;"></div>
-                </div>
             </div>
-
-            <!-- Card 2: Kebutuhan Bibit & Pupuk -->
-            <div class="card">
-                <h2>🌱 2. Bibit & Pupuk</h2>
-                <div class="form-group">
-                    <label>⚠️ Faktor kematian bibit (%)</label>
-                    <input type="number" id="mortalityRate" value="10" step="5">
-                </div>
-                <div class="form-group">
-                    <label>💰 Harga Pupuk (per kg)</label>
-                    <div class="input-group" style="margin-bottom: 5px;">
-                        <span style="width: 60px;">Urea:</span>
-                        <input type="number" id="priceUrea" value="5000" placeholder="Rp">
-                    </div>
-                    <div class="input-group" style="margin-bottom: 5px;">
-                        <span style="width: 60px;">SP-36:</span>
-                        <input type="number" id="priceSp36" value="5500" placeholder="Rp">
-                    </div>
-                    <div class="input-group" style="margin-bottom: 5px;">
-                        <span style="width: 60px;">KCL:</span>
-                        <input type="number" id="priceKcl" value="6000" placeholder="Rp">
-                    </div>
-                    <div class="input-group">
-                        <span style="width: 60px;">NPK:</span>
-                        <input type="number" id="priceNpk" value="8000" placeholder="Rp">
-                    </div>
-                </div>
-                <button onclick="calculateAll()">Hitung Ulang</button>
-                <div class="result-box">
-                    <div class="result-number" id="totalSeeds">-</div>
-                    <div class="result-label">Total bibit perlu disiapkan</div>
-                </div>
+            <div class="form-group">
+                <label>Pola Tanam</label>
+                <select id="pattern">
+                    <option value="square">Persegi (Square Grid)</option>
+                    <option value="offset">Segitiga (Offset/Triangular)</option>
+                </select>
             </div>
-
-            <!-- Card 3: Hasil Pupuk & Keuntungan -->
-            <div class="card">
-                <h2>💰 3. Pupuk & Keuntungan</h2>
-                <div class="fertilizer-row">
-                    <span class="fertilizer-name">Urea</span>
-                    <span class="fertilizer-result" id="ureaResult">- kg</span>
-                </div>
-                <div class="fertilizer-row">
-                    <span class="fertilizer-name">SP-36</span>
-                    <span class="fertilizer-result" id="sp36Result">- kg</span>
-                </div>
-                <div class="fertilizer-row">
-                    <span class="fertilizer-name">KCL</span>
-                    <span class="fertilizer-result" id="kclResult">- kg</span>
-                </div>
-                <div class="fertilizer-row">
-                    <span class="fertilizer-name">NPK</span>
-                    <span class="fertilizer-result" id="npkResult">- kg</span>
-                </div>
-                <div class="form-group" style="margin-top: 12px;">
-                    <label>💰 Harga jual per kg hasil panen (Rp)</label>
-                    <input type="number" id="pricePerKg" value="5000" placeholder="Contoh: 5000">
-                </div>
-                <div class="profit-box">
-                    <div class="result-label">Estimasi Keuntungan Bersih</div>
-                    <div class="profit-number" id="netProfit">-</div>
-                    <div id="profitDetail" style="font-size: 0.7rem; margin-top: 5px;"></div>
-                </div>
+            <div class="result-preview">
+                <h4>📊 Hasil Perhitungan</h4>
+                <div class="result-number" id="previewPlants">-</div>
+                <div>Total tanaman yang bisa ditanam</div>
+                <div id="previewComparison" style="font-size: 0.7rem; margin-top: 8px;"></div>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="prevStep(1)">← Sebelumnya</button>
+                <button class="btn btn-primary" onclick="nextStep(3)">Selanjutnya →</button>
             </div>
         </div>
 
-        <!-- Card 4: Jadwal Pemupukan & Progres Panen -->
-        <div class="grid">
-            <div class="card">
-                <h2>📅 4. Jadwal Pemupukan & Progres Panen</h2>
-                <div class="form-group">
-                    <label>📆 Usia Tanam Saat Ini (hari)</label>
-                    <input type="number" id="currentAge" value="0" placeholder="0 = baru tanam">
+        <!-- STEP 3 -->
+        <div class="step-card" id="step3">
+            <div class="step-title"><span>💰</span> Langkah 3: Masukkan Harga</div>
+            <div class="step-description">Masukkan harga pupuk dan harga jual hasil panen di daerahmu.</div>
+            <div class="form-group"><label>Harga Urea per kg (Rp)</label><input type="number" id="priceUrea" value="5000"></div>
+            <div class="form-group"><label>Harga SP-36 per kg (Rp)</label><input type="number" id="priceSp36" value="5500"></div>
+            <div class="form-group"><label>Harga KCL per kg (Rp)</label><input type="number" id="priceKcl" value="6000"></div>
+            <div class="form-group"><label>Harga NPK per kg (Rp)</label><input type="number" id="priceNpk" value="8000"></div>
+            <div class="form-group"><label>Harga Bibit per satuan (Rp)</label><input type="number" id="priceSeed" value="50000" placeholder="Harga per kg atau per bungkus"></div>
+            <div class="form-group"><label>Harga Jual Hasil Panen per kg (Rp)</label><input type="number" id="pricePerKg" value="5000"></div>
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="prevStep(2)">← Sebelumnya</button>
+                <button class="btn btn-primary" onclick="nextStep(4)">Selanjutnya →</button>
+            </div>
+        </div>
+
+        <!-- STEP 4: JADWAL PEMUPUKAN -->
+        <div class="step-card" id="step4">
+            <div class="step-title"><span>📅</span> Langkah 4: Jadwal Pemupukan</div>
+            <div class="step-description">Jadwal pemupukan untuk <strong id="schedulePlantName">Padi</strong>. Masukkan usia tanaman untuk melihat status.</div>
+            <div class="form-group">
+                <label>📆 Usia Tanam Saat Ini (hari)</label>
+                <input type="number" id="currentAge" value="0" placeholder="0 = baru tanam">
+            </div>
+            <div class="info-card">
+                <h4>📊 Progres Menuju Panen</h4>
+                <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+                <div id="harvestStatus" style="font-size: 0.8rem; margin-top: 8px; text-align: center;"></div>
+            </div>
+            <div class="info-card">
+                <h4>🗓️ Tabel Jadwal Pemupukan</h4>
+                <div style="overflow-x: auto;">
+                    <table class="schedule-table" id="scheduleTable">
+                        <thead><tr><th>Waktu</th><th>Fase</th><th>Jenis Pupuk</th><th>Dosis (kg/ha)</th><th>Cara Aplikasi</th><th>Status</th></tr></thead>
+                        <tbody id="scheduleTableBody"></tbody>
+                    </table>
                 </div>
-                
-                <!-- Informasi Panen -->
-                <div id="harvestInfo" class="result-box" style="margin-bottom: 15px;">
-                    <div class="result-label">📊 Progres Menuju Panen</div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="note" id="plantTips">💡 <strong>Tips khusus:</strong> Gunakan pupuk sesuai dosis rekomendasi.</div>
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="prevStep(3)">← Sebelumnya</button>
+                <button class="btn btn-primary" onclick="nextStep(5)">Selanjutnya →</button>
+            </div>
+        </div>
+
+        <!-- STEP 5: HASIL LENGKAP -->
+        <div class="step-card" id="step5">
+            <div class="step-title"><span>📊</span> Langkah 5: Hasil & Analisis Usaha</div>
+            <div class="step-description">Berikut analisis lengkap dari usaha tanam <strong id="finalPlantName">Padi</strong> Anda.</div>
+
+            <!-- Ringkasan Tanaman & Lahan -->
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <h4>🌱 RINGKASAN TANAMAN</h4>
+                    <div class="summary-row"><span class="label">Jenis Tanaman</span><span class="value" id="summaryPlantName">-</span></div>
+                    <div class="summary-row"><span class="label">Luas Lahan</span><span class="value" id="summaryArea">-</span></div>
+                    <div class="summary-row"><span class="label">Pola Tanam</span><span class="value" id="summaryPattern">-</span></div>
+                    <div class="summary-row"><span class="label">Jarak Tanam</span><span class="value" id="summarySpacing">-</span></div>
+                    <div class="summary-row"><span class="label">Jumlah Tanaman</span><span class="value" id="summaryTotalPlants">-</span></div>
+                    <div class="summary-row"><span class="label">Kebutuhan Bibit</span><span class="value" id="summarySeeds">-</span></div>
+                </div>
+
+                <div class="summary-card">
+                    <h4>💊 KEBUTUHAN PUPUK</h4>
+                    <div class="summary-row"><span class="label">Urea</span><span class="value" id="summaryUrea">- kg</span></div>
+                    <div class="summary-row"><span class="label">SP-36</span><span class="value" id="summarySp36">- kg</span></div>
+                    <div class="summary-row"><span class="label">KCL</span><span class="value" id="summaryKcl">- kg</span></div>
+                    <div class="summary-row"><span class="label">NPK</span><span class="value" id="summaryNpk">- kg</span></div>
+                    <div class="summary-row"><span class="label">Pupuk Kandang</span><span class="value" id="summaryOrganic">Sesuai rekomendasi</span></div>
+                </div>
+            </div>
+
+            <!-- Rincian Biaya dan Pendapatan -->
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <h4>💰 RINCIAN BIAYA (MODAL)</h4>
+                    <div class="summary-row"><span class="label">Biaya Bibit</span><span class="value" id="costSeeds">-</span></div>
+                    <div class="summary-row"><span class="label">Biaya Pupuk Urea</span><span class="value" id="costUrea">-</span></div>
+                    <div class="summary-row"><span class="label">Biaya Pupuk SP-36</span><span class="value" id="costSp36">-</span></div>
+                    <div class="summary-row"><span class="label">Biaya Pupuk KCL</span><span class="value" id="costKcl">-</span></div>
+                    <div class="summary-row"><span class="label">Biaya Pupuk NPK</span><span class="value" id="costNpk">-</span></div>
+                    <div class="summary-row total"><span class="label">TOTAL MODAL</span><span class="value" id="totalCost">-</span></div>
+                </div>
+
+                <div class="summary-card">
+                    <h4>📈 RINCIAN PENDAPATAN</h4>
+                    <div class="summary-row"><span class="label">Estimasi Hasil Panen</span><span class="value" id="harvestKg">- kg</span></div>
+                    <div class="summary-row"><span class="label">Harga Jual per kg</span><span class="value" id="pricePerKgValue">-</span></div>
+                    <div class="summary-row total"><span class="label">TOTAL PENDAPATAN</span><span class="value" id="totalRevenue">-</span></div>
+                </div>
+            </div>
+
+            <!-- Keuntungan dan Analisis -->
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <h4>📊 ANALISIS KEUNTUNGAN</h4>
+                    <div class="profit-badge" id="profitBadge">
+                        <div style="font-size: 0.8rem; margin-bottom: 5px;">Estimasi Keuntungan Bersih</div>
+                        <div class="profit-value" id="netProfit">-</div>
+                        <div style="font-size: 0.7rem; margin-top: 5px;" id="profitRatio">-</div>
                     </div>
-                    <div id="harvestStatus" style="font-size: 0.8rem; margin-top: 8px;"></div>
+                    <div class="summary-row"><span class="label">BEP (Balik Modal)</span><span class="value" id="bep">- kg</span></div>
+                    <div class="summary-row"><span class="label">BEP Harga Jual</span><span class="value" id="bepPrice">- /kg</span></div>
                 </div>
 
-                <div id="scheduleList">
-                    <div style="color: #9ca3af; text-align: center; padding: 20px;">Pilih tanaman untuk melihat jadwal</div>
-                </div>
-                <div class="note">
-                    💡 <strong>Tips:</strong> Setiap tanaman punya umur panen berbeda. Jadwal pemupukan disesuaikan dengan persentase umur tanaman.
+                <div class="summary-card">
+                    <h4>💡 REKOMENDASI</h4>
+                    <div id="rekomendasiText" style="font-size: 0.8rem; line-height: 1.5; color: #374151;">
+                        Memuat rekomendasi...
+                    </div>
                 </div>
             </div>
 
-            <!-- Card 5: Riwayat & Aksi -->
-            <div class="card">
-                <h2>📜 5. Riwayat & Aksi</h2>
-                <div id="historyList">
-                    <div style="color: #9ca3af; text-align: center; padding: 20px;">Belum ada riwayat</div>
-                </div>
-                <div class="btn-group">
-                    <button onclick="saveToHistory()">💾 Simpan Perhitungan Ini</button>
-                    <button class="btn-secondary" onclick="clearHistory()">Hapus Riwayat</button>
-                </div>
-                <button onclick="exportToPDF()">📑 Export ke PDF</button>
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="prevStep(4)">← Sebelumnya</button>
+                <button class="btn btn-primary" onclick="saveToHistoryAndAlert()">💾 Simpan Perhitungan</button>
+                <button class="btn btn-primary" onclick="exportToPDF()">📑 Export PDF</button>
             </div>
         </div>
 
-        <!-- Tabel Referensi -->
-        <div class="comparison-table">
-            <h2>📚 Tabel Referensi Tanaman & Umur Panen</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Tanaman</th>
-                        <th>Jarak Tanam (cm)</th>
-                        <th>Umur Panen (hari)</th>
-                        <th>Pupuk Dasar</th>
-                        <th>Pupuk Susulan 1</th>
-                        <th>Pupuk Susulan 2</th>
-                    </tr>
-                </thead>
-                <tbody id="referenceTable">
-                    <!-- Diisi JavaScript -->
-                </tbody>
-            </table>
-            <div class="note">
-                💡 <strong>Catatan:</strong> Umur panen bisa berbeda tergantung varietas, kondisi tanah, dan iklim. Data di atas adalah rata-rata nasional.
-            </div>
-        </div>
+        <div class="footer"><p>🌾 Kalkulator Tanaman & Pupuk — Analisis lengkap untuk petani Indonesia</p></div>
+    </div>
 
-        <div class="footer">
-            <p>🌾 Kalkulator Tanaman & Pupuk Plus — Gratis untuk petani Indonesia | Bisa dipakai offline setelah dibuka sekali</p>
+    <button class="history-btn" onclick="openHistoryModal()">📜 Lihat Riwayat</button>
+
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2>📜 Riwayat Perhitungan</h2><button class="close-modal" onclick="closeHistoryModal()">✕</button></div>
+            <div id="historyListModal" class="history-list"></div>
+            <button class="btn-clear" onclick="clearAllHistory()">🗑️ Hapus Semua Riwayat</button>
         </div>
     </div>
 
-    <div class="offline-status" id="offlineStatus">🟢 Online</div>
-
     <script>
-        // Data tanaman lengkap dengan umur panen dan jadwal pemupukan (dalam % dari umur panen)
+        // Data tanaman lengkap
         const plantData = {
-            padi: {
-                spacing: 25, yieldPer10m2: 0.7, harvestDays: 105,
-                urea: 225, sp36: 125, kcl: 85, npk: 300,
-                seedCost: 50000,
+            padi: { spacing: 25, yieldPer10m2: 0.7, harvestDays: 105, name: 'Padi',
+                urea: 225, sp36: 125, kcl: 85, npk: 300, seedCost: 50000, seedUnit: 'kg',
                 schedule: [
-                    { percent: 0, desc: "Pupuk Dasar (saat tanam)", fertilizer: "Urea 50 kg + SP-36 100 kg + KCL 50 kg per ha" },
-                    { percent: 13, desc: "Pupuk Susulan I", fertilizer: "Urea 75 kg + KCL 25 kg per ha" },
-                    { percent: 27, desc: "Pupuk Susulan II", fertilizer: "Urea 100 kg per ha" },
-                    { percent: 40, desc: "Pupuk Susulan III (opsional)", fertilizer: "NPK 50 kg per ha" }
-                ]
-            },
-            jagung: {
-                spacing: 70, yieldPer10m2: 0.6, harvestDays: 97,
-                urea: 300, sp36: 175, kcl: 125, npk: 400,
-                seedCost: 40000,
+                    { day: 0, fase: 'Pra Tanam', pupuk: 'Pupuk Kandang', dosis: '10.000 kg', cara: 'Sebar 2 minggu sebelum tanam' },
+                    { day: 0, fase: 'Dasar', pupuk: 'SP-36 + KCL', dosis: 'SP-36:100 kg, KCL:50 kg', cara: 'Campur saat olah tanah' },
+                    { day: 14, fase: 'Vegetatif', pupuk: 'Urea + KCL', dosis: 'Urea:75 kg, KCL:25 kg', cara: 'Sebar merata' },
+                    { day: 28, fase: 'Vegetatif Akhir', pupuk: 'Urea', dosis: 'Urea:100 kg', cara: 'Sebar merata' },
+                    { day: 42, fase: 'Generatif', pupuk: 'NPK', dosis: 'NPK:50 kg', cara: 'Sebar merata' }
+                ],
+                tips: 'Gunakan pupuk kandang 2 minggu sebelum tanam. Pemupukan susulan jangan telat. Pastikan air tergenang saat pemupukan.' },
+            jagung: { spacing: 70, yieldPer10m2: 0.6, harvestDays: 97, name: 'Jagung',
+                urea: 300, sp36: 175, kcl: 125, npk: 400, seedCost: 40000, seedUnit: 'kg',
                 schedule: [
-                    { percent: 0, desc: "Pupuk Dasar (saat tanam)", fertilizer: "Urea 100 kg + SP-36 150 kg + KCL 75 kg per ha" },
-                    { percent: 22, desc: "Pupuk Susulan I (3 minggu)", fertilizer: "Urea 100 kg + KCL 50 kg per ha" },
-                    { percent: 43, desc: "Pupuk Susulan II (6 minggu)", fertilizer: "Urea 100 kg per ha" }
-                ]
-            },
-            cabai: {
-                spacing: 60, yieldPer10m2: 1.0, harvestDays: 80,
-                urea: 250, sp36: 175, kcl: 175, npk: 350,
-                seedCost: 80000,
+                    { day: 0, fase: 'Dasar', pupuk: 'SP-36 + KCL', dosis: 'SP-36:150 kg, KCL:75 kg', cara: 'Campur saat olah tanah' },
+                    { day: 0, fase: 'Pra Tanam', pupuk: 'Pupuk Kandang', dosis: '5.000-10.000 kg', cara: 'Sebar 1-2 minggu sebelum tanam' },
+                    { day: 21, fase: 'Vegetatif', pupuk: 'Urea + KCL', dosis: 'Urea:100 kg, KCL:50 kg', cara: 'Tugal di samping tanaman' },
+                    { day: 42, fase: 'Generatif', pupuk: 'Urea', dosis: 'Urea:100 kg', cara: 'Tugal di samping tanaman' }
+                ],
+                tips: 'Pemupukan urea sebaiknya ditugal untuk mengurangi penguapan. Jagung butuh air cukup saat pembentukan tongkol.' },
+            cabai: { spacing: 60, yieldPer10m2: 1.0, harvestDays: 80, name: 'Cabai',
+                urea: 250, sp36: 175, kcl: 175, npk: 350, seedCost: 80000, seedUnit: 'kg',
                 schedule: [
-                    { percent: 0, desc: "Pupuk Dasar (saat tanam)", fertilizer: "SP-36 150 kg + KCL 75 kg + Pupuk Kandang 10 ton per ha" },
-                    { percent: 18, desc: "Pupuk Susulan I (2 minggu)", fertilizer: "Urea 75 kg per ha" },
-                    { percent: 35, desc: "Pupuk Susulan II (4 minggu)", fertilizer: "Urea 75 kg + KCL 50 kg per ha" },
-                    { percent: 53, desc: "Pupuk Susulan III (6 minggu)", fertilizer: "NPK 100 kg per ha" }
-                ]
-            },
-            tomat: {
-                spacing: 50, yieldPer10m2: 2.0, harvestDays: 72,
-                urea: 200, sp36: 125, kcl: 125, npk: 300,
-                seedCost: 70000,
+                    { day: 0, fase: 'Dasar', pupuk: 'SP-36 + KCL', dosis: 'SP-36:150 kg, KCL:75 kg', cara: 'Campur saat olah tanah' },
+                    { day: 0, fase: 'Pra Tanam', pupuk: 'Pupuk Kandang', dosis: '10.000-15.000 kg', cara: 'Sebar 2 minggu sebelum tanam' },
+                    { day: 14, fase: 'Vegetatif', pupuk: 'Urea', dosis: 'Urea:75 kg', cara: 'Sebar di sekitar tanaman' },
+                    { day: 28, fase: 'Generatif Awal', pupuk: 'Urea + KCL', dosis: 'Urea:75 kg, KCL:50 kg', cara: 'Sebar merata' },
+                    { day: 50, fase: 'Generatif', pupuk: 'NPK', dosis: 'NPK:100 kg', cara: 'Sebar merata' }
+                ],
+                tips: 'Cabai sensitif terhadap kelebihan air. Pupuk kandang sangat penting untuk cabai.' },
+            tomat: { spacing: 50, yieldPer10m2: 2.0, harvestDays: 72, name: 'Tomat',
+                urea: 200, sp36: 125, kcl: 125, npk: 300, seedCost: 70000, seedUnit: 'kg',
                 schedule: [
-                    { percent: 0, desc: "Pupuk Dasar (saat tanam)", fertilizer: "SP-36 100 kg + Pupuk Kandang 10 ton per ha" },
-                    { percent: 20, desc: "Pupuk Susulan I (2 minggu)", fertilizer: "Urea 50 kg + KCL 50 kg per ha" },
-                    { percent: 40, desc: "Pupuk Susulan II (4 minggu)", fertilizer: "NPK 100 kg per ha" },
-                    { percent: 60, desc: "Pupuk Susulan III (6 minggu)", fertilizer: "Urea 50 kg + KCL 50 kg per ha" }
-                ]
-            },
-            sawi: {
-                spacing: 20, yieldPer10m2: 1.5, harvestDays: 35,
-                urea: 125, sp36: 85, kcl: 60, npk: 200,
-                seedCost: 30000,
+                    { day: 0, fase: 'Dasar', pupuk: 'SP-36', dosis: 'SP-36:100 kg', cara: 'Campur saat olah tanah' },
+                    { day: 0, fase: 'Pra Tanam', pupuk: 'Pupuk Kandang', dosis: '10.000 kg', cara: 'Sebar 2 minggu sebelum tanam' },
+                    { day: 14, fase: 'Vegetatif', pupuk: 'Urea + KCL', dosis: 'Urea:50 kg, KCL:50 kg', cara: 'Sebar merata' },
+                    { day: 30, fase: 'Generatif Awal', pupuk: 'NPK', dosis: 'NPK:100 kg', cara: 'Sebar merata' },
+                    { day: 50, fase: 'Generatif', pupuk: 'Urea + KCL', dosis: 'Urea:50 kg, KCL:50 kg', cara: 'Sebar merata' }
+                ],
+                tips: 'Tomat butuh pupuk seimbang. Kekurangan kalsium bisa sebabkan busuk buah. Beri kapur dolomit jika pH tanah rendah.' },
+            sawi: { spacing: 20, yieldPer10m2: 1.5, harvestDays: 35, name: 'Sawi',
+                urea: 125, sp36: 85, kcl: 60, npk: 200, seedCost: 30000, seedUnit: 'kg',
                 schedule: [
-                    { percent: 0, desc: "Pupuk Dasar (saat tanam)", fertilizer: "Urea 50 kg + SP-36 50 kg per ha" },
-                    { percent: 40, desc: "Pupuk Susulan (2 minggu)", fertilizer: "Urea 75 kg per ha" }
-                ]
-            },
-            kangkung: {
-                spacing: 15, yieldPer10m2: 1.2, harvestDays: 27,
-                urea: 100, sp36: 75, kcl: 50, npk: 150,
-                seedCost: 25000,
+                    { day: 0, fase: 'Dasar', pupuk: 'SP-36 + KCL', dosis: 'SP-36:50 kg, KCL:50 kg', cara: 'Campur saat olah tanah' },
+                    { day: 0, fase: 'Pra Tanam', pupuk: 'Pupuk Kandang', dosis: '5.000 kg', cara: 'Sebar 1 minggu sebelum tanam' },
+                    { day: 14, fase: 'Vegetatif', pupuk: 'Urea', dosis: 'Urea:75 kg', cara: 'Sebar atau larutkan air' }
+                ],
+                tips: 'Sawi berumur pendek, panen saat daun cukup besar tapi belum terlalu tua (sekitar 35 hari).' },
+            kangkung: { spacing: 15, yieldPer10m2: 1.2, harvestDays: 27, name: 'Kangkung',
+                urea: 100, sp36: 75, kcl: 50, npk: 150, seedCost: 25000, seedUnit: 'kg',
                 schedule: [
-                    { percent: 0, desc: "Pupuk Dasar (saat tanam)", fertilizer: "Urea 50 kg + SP-36 50 kg per ha" },
-                    { percent: 37, desc: "Pupuk Susulan (10-14 hari)", fertilizer: "Urea 50 kg per ha" }
-                ]
-            }
+                    { day: 0, fase: 'Dasar', pupuk: 'SP-36', dosis: 'SP-36:50 kg', cara: 'Campur saat olah tanah' },
+                    { day: 0, fase: 'Pra Tanam', pupuk: 'Pupuk Kandang', dosis: '5.000 kg', cara: 'Sebar 1 minggu sebelum tanam' },
+                    { day: 12, fase: 'Vegetatif', pupuk: 'Urea', dosis: 'Urea:50 kg', cara: 'Larutkan air untuk hasil cepat' }
+                ],
+                tips: 'Kangkung sangat cepat panen (25-30 hari). Jaga kelembaban tanah.' }
         };
 
-        // Konversi luas ke m²
-        function convertToM2(value, unit) {
-            if (unit === 'm2') return value;
-            if (unit === 'ha') return value * 10000;
-            if (unit === 'tumbak') return value * 14;
-            return value;
-        }
-
-        function convertFromM2(m2, unit) {
-            if (unit === 'm2') return m2;
-            if (unit === 'ha') return m2 / 10000;
-            if (unit === 'tumbak') return m2 / 14;
-            return m2;
-        }
-
+        function getPlantData() { return plantData[document.getElementById('plantType').value]; }
         function getAreaInM2() {
-            let value = parseFloat(document.getElementById('areaValue').value);
+            let val = parseFloat(document.getElementById('areaValue').value);
             let unit = document.getElementById('areaUnit').value;
-            if (isNaN(value)) return 0;
-            return convertToM2(value, unit);
+            if (isNaN(val)) return 0;
+            if (unit === 'ha') return val * 10000;
+            if (unit === 'tumbak') return val * 14;
+            return val;
         }
 
-        function getPlantData() {
-            return plantData[document.getElementById('plantType').value];
-        }
-
-        function updateHarvestProgress() {
+        function updateJarakInfo() {
             let plant = getPlantData();
-            let currentAge = parseFloat(document.getElementById('currentAge').value) || 0;
-            
             if (!plant) return;
-            
-            let harvestDays = plant.harvestDays;
-            let percentComplete = Math.min(100, Math.max(0, (currentAge / harvestDays) * 100));
-            let daysLeft = Math.max(0, harvestDays - currentAge);
-            
-            document.getElementById('progressFill').style.width = percentComplete + '%';
-            
-            let statusText = '';
-            if (currentAge >= harvestDays) {
-                statusText = `✅ Waktunya panen! Tanaman sudah berumur ${currentAge} hari (melewati umur panen ${harvestDays} hari)`;
-            } else if (percentComplete >= 90) {
-                statusText = `🌾 Hampir panen! ${daysLeft} hari lagi (${Math.floor(percentComplete)}% selesai)`;
-            } else if (percentComplete >= 50) {
-                statusText = `🌱 Pertumbuhan baik. ${daysLeft} hari menuju panen (${Math.floor(percentComplete)}% selesai)`;
-            } else {
-                statusText = `🌿 Fase pertumbuhan awal. ${daysLeft} hari menuju panen (${Math.floor(percentComplete)}% selesai)`;
-            }
-            
-            document.getElementById('harvestStatus').innerHTML = `🌽 Umur panen: ${harvestDays} hari | Tersisa: ${daysLeft} hari<br>${statusText}`;
+            document.getElementById('selectedPlantName').innerText = plant.name;
+            document.getElementById('jarakPlantName').innerText = plant.name;
+            document.getElementById('jarakValue').innerHTML = `${plant.spacing} cm × ${plant.spacing} cm`;
+            let per100m2 = Math.floor(10000 / (plant.spacing * plant.spacing / 10000));
+            document.getElementById('densityInfo').innerHTML = `~${per100m2.toLocaleString('id-ID')} tanaman per 100 m²`;
         }
 
-        function updateSchedule() {
-            let plantType = document.getElementById('plantType').value;
-            let plant = plantData[plantType];
-            let currentAge = parseFloat(document.getElementById('currentAge').value) || 0;
-            
-            if (!plant) return;
-            
-            let harvestDays = plant.harvestDays;
-            let scheduleHtml = '';
-            let upcomingCount = 0;
-            
-            plant.schedule.forEach(item => {
-                let scheduleDay = Math.floor((item.percent / 100) * harvestDays);
-                let status = '';
-                let isUpcoming = scheduleDay > currentAge;
-                let isCurrent = Math.abs(scheduleDay - currentAge) <= 3;
-                
-                if (scheduleDay <= currentAge && currentAge > 0) {
-                    if (currentAge >= harvestDays && scheduleDay < harvestDays) {
-                        status = '✅ Sudah lewat (masa panen)';
-                    } else {
-                        status = '✅ Sudah lewat';
-                    }
-                } else if (isCurrent && currentAge > 0) {
-                    status = '🔔 Waktunya sekarang!';
-                    upcomingCount++;
-                } else {
-                    status = `⏳ ${scheduleDay - currentAge} hari lagi`;
-                    upcomingCount++;
-                }
-                
-                let borderColor = isCurrent ? '#ffc107' : '#4caf50';
-                scheduleHtml += `
-                    <div class="schedule-item" style="border-left-color: ${borderColor};">
-                        <div class="schedule-week">📆 ${item.percent === 0 ? 'Saat Tanam' : `Hari ke-${scheduleDay} (${item.percent}% dari umur panen)`}</div>
-                        <div class="schedule-desc">${item.desc}</div>
-                        <div class="schedule-fertilizer">🧪 ${item.fertilizer}</div>
-                        <div style="font-size: 0.7rem; margin-top: 5px; color: #6b7280;">${status}</div>
-                    </div>
-                `;
-            });
-            
-            if (upcomingCount === 0 && currentAge > 0 && currentAge < harvestDays) {
-                scheduleHtml += `<div class="note">🎉 Semua jadwal pemupukan sudah selesai! Tinggal menunggu masa panen ${harvestDays - currentAge} hari lagi.</div>`;
-            } else if (currentAge >= harvestDays) {
-                scheduleHtml += `<div class="note">🎉 Masa panen! Pemupukan sudah selesai. Saatnya menikmati hasil panen.</div>`;
-            }
-            
-            document.getElementById('scheduleList').innerHTML = scheduleHtml;
-        }
-
-        function calculateAll() {
+        function updateStep2Preview() {
             let areaM2 = getAreaInM2();
             let plant = getPlantData();
             if (!plant || areaM2 <= 0) return;
-
-            let spacingCm = plant.spacing;
-            let pattern = document.getElementById('pattern').value;
-            let spacingM = spacingCm / 100;
+            let spacingM = plant.spacing / 100;
             let length = Math.sqrt(areaM2);
-            let width = length;
+            let plantsLinear = Math.floor(length / spacingM);
+            let plantsSquare = plantsLinear * plantsLinear;
+            let plantsOffset = Math.floor(plantsSquare * 1.15);
+            let selectedPattern = document.getElementById('pattern').value;
+            let totalPlants = selectedPattern === 'square' ? plantsSquare : plantsOffset;
+            document.getElementById('previewPlants').innerHTML = totalPlants.toLocaleString('id-ID');
+            document.getElementById('previewComparison').innerHTML = `Pola persegi: ${plantsSquare.toLocaleString('id-ID')} tanaman | Pola segitiga: ${plantsOffset.toLocaleString('id-ID')} tanaman (lebih padat ~15%)`;
+        }
+
+        function updateScheduleTable() {
+            let plant = getPlantData();
+            let currentAge = parseFloat(document.getElementById('currentAge').value) || 0;
+            if (!plant) return;
+            document.getElementById('schedulePlantName').innerText = plant.name;
+            document.getElementById('plantTips').innerHTML = `💡 <strong>Tips khusus ${plant.name}:</strong> ${plant.tips}`;
+            let scheduleHtml = '';
+            plant.schedule.forEach(item => {
+                let status = '';
+                if (currentAge >= item.day && item.day > 0) status = '✅ Sudah';
+                else if (Math.abs(currentAge - item.day) <= 2 && item.day > 0) status = '🔔 Sekarang!';
+                else if (item.day === 0) status = '📌 Wajib';
+                else status = `⏳ ${item.day - currentAge} hari lagi`;
+                let faseClass = '';
+                if (item.fase === 'Vegetatif' || item.fase === 'Vegetatif Akhir') faseClass = 'vegetatif';
+                else if (item.fase.includes('Generatif')) faseClass = 'generatif';
+                let dayText = item.day === 0 ? 'Saat Tanam' : `Hari ke-${item.day}`;
+                scheduleHtml += `<tr><td>${dayText}</td><td><span class="fase-badge ${faseClass}">${item.fase}</span></td><td>${item.pupuk}</td><td>${item.dosis}</td><td>${item.cara}</td><td>${status}</td></tr>`;
+            });
+            document.getElementById('scheduleTableBody').innerHTML = scheduleHtml;
+            let percent = Math.min(100, (currentAge / plant.harvestDays) * 100);
+            document.getElementById('progressFill').style.width = percent + '%';
+            document.getElementById('harvestStatus').innerHTML = `🌽 Umur panen: ${plant.harvestDays} hari | Tersisa: ${Math.max(0, plant.harvestDays - currentAge)} hari | ${Math.floor(percent)}% selesai`;
+        }
+
+        function updateFinalResults() {
+            let plant = getPlantData();
+            let areaM2 = getAreaInM2();
+            if (!plant || areaM2 <= 0) return;
             
-            let plantsLength = Math.floor(length / spacingM);
-            let plantsWidth = Math.floor(width / spacingM);
-            let totalPlants = plantsLength * plantsWidth;
-            if (pattern === 'offset') {
-                totalPlants = Math.floor(totalPlants * 1.15);
-            }
-
             let areaHa = areaM2 / 10000;
-            document.getElementById('totalPlants').innerHTML = totalPlants.toLocaleString('id-ID');
             let unit = document.getElementById('areaUnit').value;
-            let areaDisplay = convertFromM2(areaM2, unit);
-            document.getElementById('areaInfo').innerHTML = `Luas: ${areaDisplay.toFixed(2)} ${unit} (${areaHa.toFixed(2)} ha)`;
-
-            let mortality = parseFloat(document.getElementById('mortalityRate').value);
-            let totalSeeds = Math.ceil(totalPlants * (1 + mortality / 100));
-            document.getElementById('totalSeeds').innerHTML = totalSeeds.toLocaleString('id-ID') + ' bibit';
-
+            let areaDisplay = areaM2;
+            if (unit === 'ha') areaDisplay = areaM2 / 10000;
+            if (unit === 'tumbak') areaDisplay = areaM2 / 14;
+            
+            let spacingM = plant.spacing / 100;
+            let length = Math.sqrt(areaM2);
+            let plantsLinear = Math.floor(length / spacingM);
+            let plantsSquare = plantsLinear * plantsLinear;
+            let plantsOffset = Math.floor(plantsSquare * 1.15);
+            let selectedPattern = document.getElementById('pattern').value;
+            let totalPlants = selectedPattern === 'square' ? plantsSquare : plantsOffset;
+            let totalSeeds = Math.ceil(totalPlants * 1.1);
+            
             let urea = (plant.urea * areaHa).toFixed(1);
             let sp36 = (plant.sp36 * areaHa).toFixed(1);
             let kcl = (plant.kcl * areaHa).toFixed(1);
             let npk = (plant.npk * areaHa).toFixed(1);
             
-            document.getElementById('ureaResult').innerHTML = urea + ' kg';
-            document.getElementById('sp36Result').innerHTML = sp36 + ' kg';
-            document.getElementById('kclResult').innerHTML = kcl + ' kg';
-            document.getElementById('npkResult').innerHTML = npk + ' kg';
-
             let priceUrea = parseFloat(document.getElementById('priceUrea').value);
             let priceSp36 = parseFloat(document.getElementById('priceSp36').value);
             let priceKcl = parseFloat(document.getElementById('priceKcl').value);
             let priceNpk = parseFloat(document.getElementById('priceNpk').value);
+            let priceSeed = parseFloat(document.getElementById('priceSeed').value);
+            let priceJual = parseFloat(document.getElementById('pricePerKg').value);
             
-            let fertilizerCost = (parseFloat(urea) * priceUrea) + (parseFloat(sp36) * priceSp36) + 
-                                 (parseFloat(kcl) * priceKcl) + (parseFloat(npk) * priceNpk);
+            let costUrea = parseFloat(urea) * priceUrea;
+            let costSp36 = parseFloat(sp36) * priceSp36;
+            let costKcl = parseFloat(kcl) * priceKcl;
+            let costNpk = parseFloat(npk) * priceNpk;
+            let costSeeds = priceSeed * areaHa;
+            let totalFertilizerCost = costUrea + costSp36 + costKcl + costNpk;
+            let totalCost = costSeeds + totalFertilizerCost;
             
             let totalKg = Math.floor(totalPlants * plant.yieldPer10m2);
-            let price = parseFloat(document.getElementById('pricePerKg').value);
-            let revenue = totalKg * price;
-            
-            let seedCost = plant.seedCost * areaHa;
-            let totalCost = fertilizerCost + seedCost;
+            let revenue = totalKg * priceJual;
             let netProfit = revenue - totalCost;
+            let profitRatio = (netProfit / totalCost * 100).toFixed(1);
+            let bepKg = (totalCost / priceJual).toFixed(1);
+            let bepPrice = (totalCost / totalKg).toFixed(0);
             
-            document.getElementById('netProfit').innerHTML = `Rp ${netProfit.toLocaleString('id-ID')}`;
-            let profitClass = netProfit >= 0 ? 'positive' : 'negative';
-            document.getElementById('netProfit').className = `profit-number ${profitClass}`;
-            document.getElementById('profitDetail').innerHTML = `Pendapatan: Rp ${revenue.toLocaleString('id-ID')} | Biaya: Rp ${totalCost.toLocaleString('id-ID')}`;
+            // Update ringkasan tanaman
+            document.getElementById('finalPlantName').innerText = plant.name;
+            document.getElementById('summaryPlantName').innerHTML = plant.name;
+            document.getElementById('summaryArea').innerHTML = `${areaDisplay.toFixed(2)} ${unit} (${areaHa.toFixed(2)} ha)`;
+            document.getElementById('summaryPattern').innerHTML = selectedPattern === 'square' ? 'Persegi' : 'Segitiga (Offset)';
+            document.getElementById('summarySpacing').innerHTML = `${plant.spacing} cm × ${plant.spacing} cm`;
+            document.getElementById('summaryTotalPlants').innerHTML = totalPlants.toLocaleString('id-ID') + ' tanaman';
+            document.getElementById('summarySeeds').innerHTML = totalSeeds.toLocaleString('id-ID') + ' bibit';
             
-            updateHarvestProgress();
-            updateSchedule();
-        }
-
-        // Tabel referensi
-        function updateReferenceTable() {
-            let plants = ['padi', 'jagung', 'cabai', 'tomat', 'sawi', 'kangkung'];
-            let plantNames = { padi: 'Padi', jagung: 'Jagung', cabai: 'Cabai', tomat: 'Tomat', sawi: 'Sawi', kangkung: 'Kangkung' };
-            let rows = '';
-            plants.forEach(p => {
-                let data = plantData[p];
-                if (data) {
-                    let schedule0 = data.schedule[0]?.fertilizer.substring(0, 35) || '-';
-                    let schedule1 = data.schedule[1]?.fertilizer.substring(0, 35) || '-';
-                    let schedule2 = data.schedule[2]?.fertilizer.substring(0, 35) || '-';
-                    rows += `<tr>
-                        <td>${plantNames[p]}</td>
-                        <td>${data.spacing}x${data.spacing}</td>
-                        <td>${data.harvestDays} hari</td>
-                        <td>${schedule0}...</td>
-                        <td>${schedule1}...</td>
-                        <td>${schedule2}...</td>
-                    </tr>`;
-                }
-            });
-            document.getElementById('referenceTable').innerHTML = rows;
-        }
-
-        // Riwayat (localStorage)
-        function saveToHistory() {
-            let plant = document.getElementById('plantType').value;
-            let areaValue = document.getElementById('areaValue').value;
-            let areaUnit = document.getElementById('areaUnit').value;
-            let netProfit = document.getElementById('netProfit').innerHTML;
-            let date = new Date().toLocaleString('id-ID');
+            document.getElementById('summaryUrea').innerHTML = urea + ' kg';
+            document.getElementById('summarySp36').innerHTML = sp36 + ' kg';
+            document.getElementById('summaryKcl').innerHTML = kcl + ' kg';
+            document.getElementById('summaryNpk').innerHTML = npk + ' kg';
             
-            let history = JSON.parse(localStorage.getItem('tanamanHistory') || '[]');
-            history.unshift({ date, plant, areaValue, areaUnit, netProfit });
-            if (history.length > 20) history.pop();
-            localStorage.setItem('tanamanHistory', JSON.stringify(history));
-            loadHistory();
-        }
-
-        function loadHistory() {
-            let history = JSON.parse(localStorage.getItem('tanamanHistory') || '[]');
-            let container = document.getElementById('historyList');
-            if (history.length === 0) {
-                container.innerHTML = '<div style="color: #9ca3af; text-align: center; padding: 20px;">Belum ada riwayat</div>';
-                return;
+            document.getElementById('costSeeds').innerHTML = `Rp ${costSeeds.toLocaleString('id-ID')}`;
+            document.getElementById('costUrea').innerHTML = `Rp ${costUrea.toLocaleString('id-ID')}`;
+            document.getElementById('costSp36').innerHTML = `Rp ${costSp36.toLocaleString('id-ID')}`;
+            document.getElementById('costKcl').innerHTML = `Rp ${costKcl.toLocaleString('id-ID')}`;
+            document.getElementById('costNpk').innerHTML = `Rp ${costNpk.toLocaleString('id-ID')}`;
+            document.getElementById('totalCost').innerHTML = `Rp ${totalCost.toLocaleString('id-ID')}`;
+            
+            document.getElementById('harvestKg').innerHTML = totalKg.toLocaleString('id-ID') + ' kg';
+            document.getElementById('pricePerKgValue').innerHTML = `Rp ${priceJual.toLocaleString('id-ID')}`;
+            document.getElementById('totalRevenue').innerHTML = `Rp ${revenue.toLocaleString('id-ID')}`;
+            
+            let profitElement = document.getElementById('netProfit');
+            let profitBadge = document.getElementById('profitBadge');
+            profitElement.innerHTML = `Rp ${netProfit.toLocaleString('id-ID')}`;
+            if (netProfit >= 0) {
+                profitElement.className = 'profit-value positive';
+                profitBadge.className = 'profit-badge positive';
+                document.getElementById('profitRatio').innerHTML = `📈 Keuntungan ${profitRatio}% dari modal`;
+            } else {
+                profitElement.className = 'profit-value negative';
+                profitBadge.className = 'profit-badge negative';
+                document.getElementById('profitRatio').innerHTML = `⚠️ Rugi ${Math.abs(profitRatio)}% dari modal`;
             }
-            container.innerHTML = history.map((item, index) => `
-                <div class="history-item" onclick="loadFromHistory(${index})">
-                    <span class="history-date">📅 ${item.date}</span>
-                    <span class="history-delete" onclick="event.stopPropagation(); deleteHistoryItem(${index})">🗑️</span>
-                    <div>🌽 ${item.plant} | ${item.areaValue} ${item.areaUnit} | ${item.netProfit}</div>
-                </div>
-            `).join('');
+            document.getElementById('bep').innerHTML = `${bepKg} kg (dari total ${totalKg} kg)`;
+            document.getElementById('bepPrice').innerHTML = `Rp ${parseInt(bepPrice).toLocaleString('id-ID')}`;
+            
+            // Rekomendasi
+            let rekomendasi = '';
+            if (netProfit < 0) {
+                rekomendasi = '⚠️ Usaha ini diperkirakan rugi. Saran: cari harga jual lebih tinggi, efisienkan biaya pupuk, atau pilih tanaman dengan nilai jual lebih baik.';
+            } else if (profitRatio < 30) {
+                rekomendasi = '📊 Keuntungan masih tipis. Coba tekan biaya pupuk dengan pemupukan tepat waktu, atau cari harga jual yang lebih menguntungkan.';
+            } else if (profitRatio < 60) {
+                rekomendasi = '👍 Usaha ini cukup menguntungkan. Pertahankan dan coba tingkatkan efisiensi untuk hasil lebih baik.';
+            } else {
+                rekomendasi = '🎉 Selamat! Usaha ini sangat menguntungkan. Teruskan dan jaga kualitas hasil panen.';
+            }
+            rekomendasi += `<br><br>💡 <strong>Tips khusus ${plant.name}:</strong> ${plant.tips}`;
+            document.getElementById('rekomendasiText').innerHTML = rekomendasi;
         }
 
-        function loadFromHistory(index) {
-            let history = JSON.parse(localStorage.getItem('tanamanHistory') || '[]');
-            let item = history[index];
-            if (item) {
-                document.getElementById('plantType').value = item.plant;
-                document.getElementById('areaValue').value = item.areaValue;
-                document.getElementById('areaUnit').value = item.areaUnit;
-                calculateAll();
+        function updatePlantInfo() {
+            let plant = getPlantData();
+            if (plant) {
+                document.getElementById('plantInfoPreview').innerHTML = `${plant.name} → umur panen ${plant.harvestDays} hari, jarak tanam ${plant.spacing}×${plant.spacing} cm, hasil rata-rata ${(plant.yieldPer10m2*10).toFixed(0)} ton/ha`;
             }
         }
 
-        function deleteHistoryItem(index) {
-            let history = JSON.parse(localStorage.getItem('tanamanHistory') || '[]');
-            history.splice(index, 1);
-            localStorage.setItem('tanamanHistory', JSON.stringify(history));
-            loadHistory();
+        let currentStep = 1;
+        function showStep(step) {
+            for (let i=1;i<=5;i++) { document.getElementById(`step${i}`).classList.remove('active-step'); document.querySelector(`.step[data-step="${i}"]`).classList.remove('active'); }
+            document.getElementById(`step${step}`).classList.add('active-step');
+            document.querySelector(`.step[data-step="${step}"]`).classList.add('active');
+            if (step===2) { updateJarakInfo(); updateStep2Preview(); }
+            if (step===4) updateScheduleTable();
+            if (step===5) updateFinalResults();
+            currentStep = step;
         }
+        function nextStep(step) { showStep(step); for(let i=1;i<step;i++) document.querySelector(`.step[data-step="${i}"]`).classList.add('completed'); }
+        function prevStep(step) { showStep(step); }
 
-        function clearHistory() {
-            localStorage.removeItem('tanamanHistory');
-            loadHistory();
+        function getCurrentCalculation() {
+            let plant = getPlantData();
+            return { date: new Date().toLocaleString('id-ID'), plant: document.getElementById('plantType').value, plantName: plant?.name,
+                areaValue: document.getElementById('areaValue').value, areaUnit: document.getElementById('areaUnit').value,
+                profit: document.getElementById('netProfit')?.innerText || 'Rp 0' };
         }
-
-        function exportToPDF() {
-            const element = document.getElementById('reportContent');
-            const opt = {
-                margin: [0.5, 0.5, 0.5, 0.5],
-                filename: `kalkulator_tanaman_${new Date().toISOString().slice(0,19)}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-            };
-            html2pdf().set(opt).from(element).save();
+        function saveToHistory() { let h = JSON.parse(localStorage.getItem('tanamanHistory')||'[]'); h.unshift(getCurrentCalculation()); if(h.length>20) h.pop(); localStorage.setItem('tanamanHistory',JSON.stringify(h)); return true; }
+        function saveToHistoryAndAlert() { saveToHistory(); alert('✅ Perhitungan berhasil disimpan!\nKlik tombol "Lihat Riwayat" untuk melihatnya kembali.'); }
+        function loadHistory() { return JSON.parse(localStorage.getItem('tanamanHistory')||'[]'); }
+        function renderHistoryModal() {
+            let h = loadHistory(); let c = document.getElementById('historyListModal');
+            if(h.length===0) { c.innerHTML='<div class="empty-history">📭 Belum ada riwayat</div>'; return; }
+            c.innerHTML = h.map((item,idx)=>`<div class="history-item" onclick="loadFromHistory(${idx})"><div class="history-date">📅 ${item.date}</div><div>🌽 ${item.plantName||item.plant} | ${item.areaValue} ${item.areaUnit} | ${item.profit}</div><button class="history-delete" onclick="event.stopPropagation(); deleteHistoryItem(${idx})">🗑️</button></div>`).join('');
         }
-
-        // Offline mode
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW error:', err));
-            
-            window.addEventListener('load', () => {
-                if (!navigator.onLine) {
-                    document.getElementById('offlineStatus').innerHTML = '🔴 Offline Mode';
-                    document.getElementById('offlineStatus').classList.add('offline');
-                }
-            });
-            
-            window.addEventListener('online', () => {
-                document.getElementById('offlineStatus').innerHTML = '🟢 Online';
-                document.getElementById('offlineStatus').classList.remove('offline');
-            });
-            
-            window.addEventListener('offline', () => {
-                document.getElementById('offlineStatus').innerHTML = '🔴 Offline Mode';
-                document.getElementById('offlineStatus').classList.add('offline');
-            });
+        function openHistoryModal() { renderHistoryModal(); document.getElementById('historyModal').classList.add('show'); }
+        function closeHistoryModal() { document.getElementById('historyModal').classList.remove('show'); }
+        function loadFromHistory(idx) {
+            let h = loadHistory(); let item = h[idx];
+            if(item) { document.getElementById('plantType').value = item.plant; document.getElementById('areaValue').value = item.areaValue; document.getElementById('areaUnit').value = item.areaUnit;
+                updatePlantInfo(); updateJarakInfo(); updateStep2Preview(); updateScheduleTable(); updateFinalResults(); closeHistoryModal(); showStep(5); alert(`✅ Perhitungan dari ${item.date} dimuat.`); }
         }
+        function deleteHistoryItem(idx) { let h = loadHistory(); h.splice(idx,1); localStorage.setItem('tanamanHistory',JSON.stringify(h)); renderHistoryModal(); }
+        function clearAllHistory() { if(confirm('Yakin hapus semua riwayat?')) { localStorage.removeItem('tanamanHistory'); renderHistoryModal(); } }
+        function exportToPDF() { html2pdf().set({margin:0.5, filename:`kalkulator_${new Date().toISOString().slice(0,10)}.pdf`}).from(document.getElementById('reportContent')).save(); }
 
-        // Event listeners
-        document.getElementById('plantType').addEventListener('change', () => calculateAll());
-        document.getElementById('areaValue').addEventListener('input', () => calculateAll());
-        document.getElementById('areaUnit').addEventListener('change', () => calculateAll());
-        document.getElementById('pattern').addEventListener('change', () => calculateAll());
-        document.getElementById('mortalityRate').addEventListener('input', () => calculateAll());
-        document.getElementById('priceUrea').addEventListener('input', () => calculateAll());
-        document.getElementById('priceSp36').addEventListener('input', () => calculateAll());
-        document.getElementById('priceKcl').addEventListener('input', () => calculateAll());
-        document.getElementById('priceNpk').addEventListener('input', () => calculateAll());
-        document.getElementById('pricePerKg').addEventListener('input', () => calculateAll());
-        document.getElementById('currentAge').addEventListener('input', () => {
-            updateHarvestProgress();
-            updateSchedule();
-        });
+        document.getElementById('plantType').addEventListener('change', () => { updatePlantInfo(); updateJarakInfo(); updateStep2Preview(); updateScheduleTable(); updateFinalResults(); });
+        document.getElementById('areaValue').addEventListener('input', () => { if (currentStep===2) updateStep2Preview(); updateFinalResults(); });
+        document.getElementById('areaUnit').addEventListener('change', () => { if (currentStep===2) updateStep2Preview(); updateFinalResults(); });
+        document.getElementById('pattern').addEventListener('change', () => { if (currentStep===2) updateStep2Preview(); updateFinalResults(); });
+        document.getElementById('priceUrea').addEventListener('input', () => updateFinalResults());
+        document.getElementById('priceSp36').addEventListener('input', () => updateFinalResults());
+        document.getElementById('priceKcl').addEventListener('input', () => updateFinalResults());
+        document.getElementById('priceNpk').addEventListener('input', () => updateFinalResults());
+        document.getElementById('priceSeed').addEventListener('input', () => updateFinalResults());
+        document.getElementById('pricePerKg').addEventListener('input', () => updateFinalResults());
+        document.getElementById('currentAge').addEventListener('input', () => { if (currentStep===4) updateScheduleTable(); });
 
-        updateReferenceTable();
-        window.onload = () => {
-            calculateAll();
-            loadHistory();
-        };
+        updatePlantInfo(); updateJarakInfo(); updateStep2Preview(); updateScheduleTable(); updateFinalResults();
+        window.onclick = (e) => { if(e.target === document.getElementById('historyModal')) closeHistoryModal(); }
     </script>
 </body>
 </html>
